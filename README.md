@@ -92,21 +92,29 @@ keeps the firmware's own notion.
 
 ## What the module does *not* report
 
-The module's own JavaScript defines controls for many more registers than it actually
-serves — water temperature, air flow, water pressure, extractor RPM, real power — and
-`key=020` returns a fixed set that includes none of them. There is no arbitrary-read
-endpoint, so **they cannot be recovered through this interface**. Most belong to hydronic
-stoves anyway. The full list is in [`docs/PROTOCOL.md`](docs/PROTOCOL.md).
+The module's own JavaScript defines controls for many more registers than the `key=020`
+poll actually serves — water temperature, air flow, water pressure, extractor RPM, real
+power. Most belong to hydronic stoves. The full list is in
+[`docs/PROTOCOL.md`](docs/PROTOCOL.md).
+
+The module also serves a **second REST interface, `/api/`**, that its own web page never
+calls. It exposes `rpmExtractor` and the hydronic `water` values — `null` on the
+reference air stove, but present on the interface — plus the MAC address, which is the
+only local source of a stable device identity. This integration does not use it yet;
+`docs/PROTOCOL.md` documents it, including which of its endpoints are setters that
+actuate the stove.
+
+Air flow, water pressure and real power are served by neither interface.
 
 In particular there is **no analogue draught/depression reading**: the board reports a
 failed draught as alarm bit 5 ("no pressure"), which is a pressure switch, not a sensor.
 The [ESPHome `micronova` component](https://esphome.io/components/micronova/), which
 speaks the raw serial protocol to the same boards, has no such sensor either.
 
-If you do need those values, ESPHome can read arbitrary memory addresses over the same
-1200 baud link — that means tapping the board's serial connector, not extending this
-integration. `docs/PROTOCOL.md` cross-checks the two projects and confirms this
-integration's status table against ESPHome's, independently derived.
+For what neither interface serves, ESPHome can read arbitrary memory addresses over the
+same 1200 baud link — that means tapping the board's serial connector.
+`docs/PROTOCOL.md` cross-checks the two projects and confirms this integration's status
+table against ESPHome's, independently derived.
 
 Flue gas temperature *is* available — register 4, offset by 30 °C — even though the
 module's own local web page never displays it.

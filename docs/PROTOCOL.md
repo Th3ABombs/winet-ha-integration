@@ -158,19 +158,21 @@ disabled-by-default diagnostic entities so they can be identified by observation
 
 `management.js` defines parameter controls for many more registers than `key=020`
 returns, and labels them via `txt_p<register>` keys. They are listed here because the
-obvious question — "can I read the flue pressure?" — has a definite answer: **no**, there
-is no arbitrary-read endpoint, and the `key=020` set is fixed by the firmware.
+obvious question — "can I read the flue pressure?" — deserves a precise answer. The
+`key=020` set is fixed by the firmware and there is no arbitrary-read endpoint, so these
+registers are unreachable *through `/ajax`*. Some of them are reachable through the
+separate REST API documented below.
 
 | Reg | Label | Sent by this module? |
 |---|---|---|
-| 1 | Water temperature | no |
+| 1 | Water temperature | not via `/ajax`; **`/api/global` has `water`** |
 | 4 | **Flue gas temperature** | **yes** |
-| 5, 8 | Flow (air flow meter) | no |
-| 6 | Water pressure | no |
+| 5, 8 | Flow (air flow meter) | no — and not in `/api` either |
+| 6 | Water pressure | no — and not in `/api` either |
 | 7 | Remote control temperature | no |
-| 10 | Flue extractor (fan speed) | no |
+| 10 | Flue extractor (fan speed) | not via `/ajax`; **`/api/global` has `rpmExtractor`** |
 | 11, 12 | Buffer tank / heater temperature | no |
-| 13 | Real power | no |
+| 13 | Real power | no — and not in `/api` either |
 | 32, 33 | Buffer tank bottom / top temperature | no |
 | 34–36 | Pellet mode, eco/standby, season | no |
 | 37–39, 49, 52 | Pump / boiler / buffer / DHW setpoints | no |
@@ -303,8 +305,70 @@ What they mean is still open: on the reference stove 300–302 read `0` througho
 circuit) and no depression reading; this module reports a failed draught only as alarm
 bit 5. On these boards the draught is monitored by a pressure switch, not a transducer.
 
-**If you need the values this module does not serve** — air flow, water pressure,
-extractor RPM, real power — the ESPHome component can read arbitrary
-`memory_location`/`memory_address` pairs over the same serial link. That means tapping
-the board's serial connector directly, not extending this integration: the WiNET's HTTP
-API has no arbitrary-read endpoint.
+**If you need the values neither interface serves** — air flow, water pressure, real
+power — the ESPHome component can read arbitrary `memory_location`/`memory_address` pairs
+over the same serial link. That means tapping the board's serial connector directly:
+neither of the WiNET's HTTP interfaces has an arbitrary-read endpoint.
+
+---
+
+## The second interface: `/api/`
+
+The module also serves a REST API that its own local web page never calls, so it does not
+appear anywhere in `management.js`. It exists on firmware 0.79 and was found by reading
+the [HASS_WINET](https://github.com/morenonew2/HASS_WINET) project, which uses it
+exclusively. Both interfaces are live at the same time and agree with each other.
+
+### `GET /api/global` — decoded runtime state (read)
+
+```json
+{"status":0,"description":"OFF","gasflue":0,"rpmExtractor":null,
+ "air":55,"setAir":20,"water":null,"setWater":null,"power":255}
+```
+
+| Field | Meaning | `/ajax` equivalent |
+|---|---|---|
+| `status` | status code | register 2 |
+| `description` | **status decoded by the firmware** | — (we decode register 2 ourselves) |
+| `gasflue` | flue gas temperature, raw | register 4 |
+| `rpmExtractor` | extractor fan speed, `null` when unsupported | register 10, not served by `key=020` |
+| `air` | measured air temperature, raw | register 0 |
+| `setAir` | ⚠️ **not the stove setpoint** — see below | — |
+| `water`, `setWater` | hydronic values, `null` on an air stove | registers 1 / 49, not served by `key=020` |
+| `power` | power setpoint (`255` = not set) | register 51 |
+
+> ⚠️ **`setAir` is not the temperature setpoint.** On the reference stove `setAir` reads
+> 20 while register 50 reads 10, and the module's own web page displays **10 °C** as the
+> set point — so register 50 is authoritative. `setAir` matches `tStart` from `key=019`,
+> the module's *auto start/stop* threshold. Anything driving a thermostat from `setAir`
+> is writing to the wrong concept. This integration uses register 50.
+
+`rpmExtractor`, `water` and `setWater` are `null` on the reference stove because the
+board does not report them, not because the API lacks them. On a hydronic stove they
+should carry values.
+
+### `GET /api/id` — identity (read)
+
+```json
+{"id":"WiNET Gen.Stove","mac":"XXXXXXXXXXXX","apSsid":"WINET-XXXXXXXX",
+ "apWpaPwd":"XXXXXXXX","staSsid":"..."}
+```
+
+This is the only local endpoint that exposes the **MAC address**, which is what a stable
+device identity should key off. The MAC's OUI is Espressif's, confirming the module is
+ESP32-based — consistent with its ESP-NOW support, its dual boot partitions (`boot` in
+`/ajax/get-status`) and its OTA endpoint.
+
+> ⚠️ `apWpaPwd` is the module's **access-point WPA password**, served without
+> authentication. Do not paste `/api/id` output into issues or forums.
+
+### Write endpoints — do not probe these
+
+`GET /api/status/0` and `/api/status/1` turn the stove **off and on**. `/api/power/…`,
+`/api/temperature/air/…`, `/api/temperature/water/…`, `/api/global/season/…` and
+`/api/rele/<n>/status/<0|1>` are likewise setters expressed as path segments, so a
+casually "GET-ing around" probe of this API actuates hardware. `GET /api/` on its own
+returns `{"result":false}`.
+
+This integration does not use the `/api` interface yet; it is documented here because it
+is the only local source of the MAC address and of the extractor and hydronic readings.
