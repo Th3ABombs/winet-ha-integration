@@ -9,6 +9,13 @@ Everything runs over the module's own HTTP interface on your LAN. No cloud, no a
 Developed and verified against firmware **0.79**, `model = 0`,
 `custom = 65535` (the default customization profile).
 
+> [!WARNING]
+> **The write paths have never been run against a real stove.** Reading is verified
+> against the device; the temperature and power setpoints and the on/off toggle are
+> implemented from the reverse engineered protocol and have not been exercised. Watch
+> the first ignition rather than automating it. See
+> [How on/off works](#how-onoff-works-and-why-it-matters).
+
 ## What you get
 
 | Entity | Notes |
