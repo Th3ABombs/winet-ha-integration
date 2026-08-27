@@ -6,8 +6,17 @@ here because they shape this module's API:
 * ``/ajax/get-registers`` is a command dispatcher, not a read endpoint. Only ``key=019``
   and ``key=020`` are reads; ``key=022`` toggles the stove. Each key therefore gets its
   own method, and the write-ish ones are named accordingly.
-* the on/off command is a *toggle without an argument*, so the caller is responsible for
-  deciding whether it should be sent at all.
+* the on/off command on ``/ajax`` is a *toggle without an argument*, so the caller is
+  responsible for deciding whether it should be sent at all.
+
+The module also serves a second, unrelated REST interface at ``/api/`` that its own web
+page never calls. It carries readings ``/ajax`` does not — the extractor speed, the
+hydronic values — and, uniquely, the MAC address. Its on/off command is **absolute**,
+which is safer than the toggle, so it is preferred when available.
+
+Beware that several ``/api`` endpoints are setters expressed as path segments:
+``GET /api/status/1`` lights the stove. Nothing here may fetch an ``/api`` path that was
+not deliberately chosen.
 """
 
 from __future__ import annotations
@@ -27,6 +36,10 @@ KEY_GET_RUNTIME = "020"
 KEY_TOGGLE_POWER = "022"
 KEY_SET_NAME = "026"
 KEY_SET_REGISTER = "002"
+
+#: Read-only endpoints of the secondary REST interface.
+API_GLOBAL = "/api/global"
+API_ID = "/api/id"
 
 
 class WinetError(Exception):
@@ -82,6 +95,30 @@ class WinetClient:
         _LOGGER.debug("%s %s -> %s", path, data, payload)
         return payload
 
+    async def _get(self, path: str) -> dict[str, Any]:
+        """GET ``path`` and return the decoded JSON object.
+
+        Only ever call this with a path that is known to be a read: on the ``/api``
+        interface the verb lives in the path, so a stray GET can actuate the stove.
+        """
+        url = f"{self._base}{path}"
+        async with self._lock:
+            try:
+                response = await self._session.get(url, timeout=REQUEST_TIMEOUT)
+                response.raise_for_status()
+                payload = await response.json(content_type=None)
+            except TimeoutError as err:
+                raise WinetConnectionError(f"Timeout talking to {url}") from err
+            except ClientError as err:
+                raise WinetConnectionError(f"Error talking to {url}: {err}") from err
+            except ValueError as err:
+                raise WinetResponseError(f"Invalid JSON from {url}: {err}") from err
+
+        if not isinstance(payload, dict):
+            raise WinetResponseError(f"Unexpected payload from {url}: {payload!r}")
+        _LOGGER.debug("GET %s -> %s", path, payload)
+        return payload
+
     async def _dispatch(self, key: str, **fields: Any) -> dict[str, Any]:
         """Call the ``/ajax/get-registers`` dispatcher with ``key`` and extra fields."""
         return await self._request("/ajax/get-registers", {"key": key, **fields})
@@ -112,6 +149,28 @@ class WinetClient:
             raise WinetResponseError(f"Unexpected key=020 payload: {payload}")
         return payload
 
+    async def async_get_api_identity(self) -> dict[str, Any]:
+        """Return ``/api/id`` (read-only).
+
+        The only local endpoint that exposes the MAC address. It also returns the
+        module's access-point WPA password, so this payload must never be logged above
+        debug level nor put in diagnostics.
+        """
+        payload = await self._get(API_ID)
+        if "mac" not in payload:
+            raise WinetResponseError("Unexpected /api/id payload")
+        return payload
+
+    async def async_get_api_global(self) -> dict[str, Any]:
+        """Return ``/api/global`` (read-only).
+
+        Raises if the module does not serve the ``/api`` interface at all.
+        """
+        payload = await self._get(API_GLOBAL)
+        if "status" not in payload:
+            raise WinetResponseError(f"Unexpected /api/global payload: {payload}")
+        return payload
+
     # --- writes -----------------------------------------------------------
 
     async def async_toggle_power(self) -> None:
@@ -122,6 +181,19 @@ class WinetClient:
         """
         _LOGGER.info("Sending power toggle to WiNET at %s", self._host)
         self._expect_ok(await self._dispatch(KEY_TOGGLE_POWER), "Power toggle")
+
+    async def async_set_power(self, turn_on: bool) -> None:
+        """Command the stove on or off through ``/api/status/<1|0>``.
+
+        Unlike ``key=022`` this is absolute: it says what the stove should be, not
+        "change whatever it is". Callers should still check the current state, both
+        because it saves a pointless command and because it keeps the guard in place if
+        a firmware ever interprets this differently than the one it was verified on.
+        """
+        _LOGGER.info(
+            "Commanding WiNET at %s to turn %s", self._host, "on" if turn_on else "off"
+        )
+        await self._get(f"/api/status/{1 if turn_on else 0}")
 
     async def async_set_register(
         self, memory: int, reg_id: int, raw_value: int

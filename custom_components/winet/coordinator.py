@@ -52,6 +52,9 @@ class WinetCoordinator(DataUpdateCoordinator[WinetData]):
         )
         self.client = client
         self._command_lock = asyncio.Lock()
+        #: Set to False after /api/global first fails, so older modules are not polled
+        #: for an interface they do not have on every single cycle.
+        self._api_available = True
         self._optimistic_on: bool | None = None
         self._optimistic_until: float = 0.0
         #: Reported by ``/ajax/get-status`` on every poll; kept for the device entry.
@@ -67,7 +70,22 @@ class WinetCoordinator(DataUpdateCoordinator[WinetData]):
         except WinetError as err:
             raise UpdateFailed(str(err)) from err
 
-        data = decode(runtime, module)
+        api_global: dict | None = None
+        if self._api_available:
+            try:
+                api_global = await self.client.async_get_api_global()
+            except WinetError as err:
+                # The /api interface is absent on some firmwares. Losing it costs a few
+                # readings, not the integration, so degrade instead of failing.
+                self._api_available = False
+                _LOGGER.info(
+                    "WiNET at %s has no usable /api interface (%s); continuing without "
+                    "the extractor and hydronic readings",
+                    self.client.host,
+                    err,
+                )
+
+        data = decode(runtime, module, api_global)
         self.firmware_version = module.get("fwVer") or self.firmware_version
 
         if self._optimistic_on is not None:
@@ -115,7 +133,11 @@ class WinetCoordinator(DataUpdateCoordinator[WinetData]):
                 )
                 return
 
-            await self.client.async_toggle_power()
+            if self._api_available:
+                # Absolute command: says what the stove should be, not "flip it".
+                await self.client.async_set_power(turn_on)
+            else:
+                await self.client.async_toggle_power()
             self._optimistic_on = turn_on
             self._optimistic_until = time.monotonic() + OPTIMISTIC_POWER_WINDOW
 

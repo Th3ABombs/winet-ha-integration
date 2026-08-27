@@ -12,6 +12,7 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.const import (
+    REVOLUTIONS_PER_MINUTE,
     SIGNAL_STRENGTH_DECIBELS_MILLIWATT,
     EntityCategory,
     UnitOfTemperature,
@@ -84,6 +85,37 @@ SENSORS: tuple[WinetSensorDescription, ...] = (
         translation_key="target_power",
         entity_category=EntityCategory.DIAGNOSTIC,
         value_fn=lambda data: data.target_power,
+    ),
+    WinetSensorDescription(
+        key="rpm_extractor",
+        translation_key="rpm_extractor",
+        native_unit_of_measurement=REVOLUTIONS_PER_MINUTE,
+        state_class=SensorStateClass.MEASUREMENT,
+        value_fn=lambda data: data.rpm_extractor,
+    ),
+    # Hydronic readings, published unconverted: they are None on the air stove this was
+    # built against, so their scale could not be verified. Diagnostic and off by default
+    # rather than a temperature entity that might be out by a factor of two.
+    WinetSensorDescription(
+        key="water_raw",
+        translation_key="water_raw",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
+        value_fn=lambda data: data.water_raw,
+    ),
+    WinetSensorDescription(
+        key="water_setpoint_raw",
+        translation_key="water_setpoint_raw",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
+        value_fn=lambda data: data.water_setpoint_raw,
+    ),
+    WinetSensorDescription(
+        key="firmware_status_text",
+        translation_key="firmware_status_text",
+        entity_category=EntityCategory.DIAGNOSTIC,
+        entity_registry_enabled_default=False,
+        value_fn=lambda data: data.firmware_status_text,
     ),
     WinetSensorDescription(
         key="auto_mode",

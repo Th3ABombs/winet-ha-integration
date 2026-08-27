@@ -6,11 +6,13 @@
         "description": "Inserisci l'indirizzo del modulo WiNET sulla tua rete. La configurazione esegue solo letture sul dispositivo.",
         "data": {
           "host": "Host o indirizzo IP",
-          "name": "Nome"
+          "name": "Nome",
+          "identifier": "Identifica il modulo tramite"
         },
         "data_description": {
           "host": "Per esempio 192.168.1.148. Assegna al modulo un lease DHCP statico: non espone il proprio MAC, quindi l'integrazione lo identifica dall'host.",
-          "name": "Lascia vuoto per usare il nome configurato sul modulo."
+          "name": "Lascia vuoto per usare il nome configurato sul modulo.",
+          "identifier": "Il MAC viene letto dall'endpoint /api/id del modulo. I firmware più vecchi non lo espongono: in quel caso viene comunque usato l'host."
         }
       }
     },
@@ -103,6 +105,18 @@
       "target_power": {
         "name": "Potenza"
       },
+      "rpm_extractor": {
+        "name": "Giri estrattore fumi"
+      },
+      "water_raw": {
+        "name": "Temperatura acqua (grezza)"
+      },
+      "water_setpoint_raw": {
+        "name": "Set temperatura acqua (grezzo)"
+      },
+      "firmware_status_text": {
+        "name": "Stato riportato dal modulo"
+      },
       "auto_mode": {
         "name": "Avvio/arresto automatico del modulo",
         "state": {
@@ -148,5 +162,13 @@
       }
     }
   },
-  "title": "Stufa a pellet WiNET"
+  "title": "Stufa a pellet WiNET",
+  "selector": {
+    "identifier": {
+      "options": {
+        "mac": "Indirizzo MAC (resiste al cambio di IP)",
+        "host": "Indirizzo IP o hostname"
+      }
+    }
+  }
 }

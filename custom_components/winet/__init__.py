@@ -2,10 +2,17 @@
 
 from __future__ import annotations
 
+import logging
+from typing import Any
+
 from homeassistant.const import CONF_HOST, Platform
-from homeassistant.core import HomeAssistant, ServiceCall
+from homeassistant.core import HomeAssistant, ServiceCall, callback
 from homeassistant.exceptions import ServiceValidationError
-from homeassistant.helpers import config_validation as cv, device_registry as dr
+from homeassistant.helpers import (
+    config_validation as cv,
+    device_registry as dr,
+    entity_registry as er,
+)
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 import voluptuous as vol
 
@@ -14,6 +21,7 @@ from .const import (
     ATTR_MEMORY,
     ATTR_REGISTER,
     ATTR_VALUE,
+    CONF_IDENTIFIER,
     CONF_SCAN_INTERVAL,
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
@@ -31,6 +39,8 @@ PLATFORMS: list[Platform] = [
     Platform.NUMBER,
     Platform.SENSOR,
 ]
+
+_LOGGER = logging.getLogger(__name__)
 
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
@@ -65,6 +75,53 @@ async def async_setup_entry(hass: HomeAssistant, entry: WinetConfigEntry) -> boo
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
     entry.async_on_unload(entry.add_update_listener(_async_reload_entry))
     _async_register_services(hass)
+    return True
+
+
+async def async_migrate_entry(hass: HomeAssistant, entry: WinetConfigEntry) -> bool:
+    """Migrate a v1 entry, which was keyed by host, to a MAC-keyed v2 entry.
+
+    v1 identified the module by host because the MAC was not known to be available
+    anywhere locally. It is, from ``/api/id``. Re-keying the entry would orphan every
+    entity — their unique ids embed the entry's — so the entity registry is rewritten in
+    the same step and history survives.
+
+    A module that does not serve ``/api/id`` keeps its host-based id; nothing is lost
+    but nothing improves either. Either way the entry records which one it ended up
+    using, so it is visible rather than inferred.
+    """
+    if entry.version > 2:
+        # Downgrades are not supported: a newer version wrote this entry.
+        return False
+    if entry.version == 2:
+        return True
+
+    from .config_flow import async_resolve_unique_id
+
+    client = WinetClient(async_get_clientsession(hass), entry.data[CONF_HOST])
+    try:
+        new_unique_id, identifier = await async_resolve_unique_id(client)
+    except Exception:  # noqa: BLE001  a failed migration must be retried, not crash
+        _LOGGER.warning("Could not reach %s to migrate its id", entry.data[CONF_HOST])
+        return False
+
+    new_data = {**entry.data, CONF_IDENTIFIER: identifier}
+    old_unique_id = entry.unique_id or entry.entry_id
+    if new_unique_id == old_unique_id:
+        hass.config_entries.async_update_entry(entry, data=new_data, version=2)
+        return True
+
+    @callback
+    def _migrate_entity(registry_entry: er.RegistryEntry) -> dict[str, Any] | None:
+        """Re-prefix one entity's unique id, leaving anything unexpected alone."""
+        if not registry_entry.unique_id.startswith(f"{old_unique_id}_"):
+            return None
+        suffix = registry_entry.unique_id[len(old_unique_id) + 1 :]
+        return {"new_unique_id": f"{new_unique_id}_{suffix}"}
+
+    await er.async_migrate_entries(hass, entry.entry_id, _migrate_entity)
+    hass.config_entries.async_update_entry(entry, unique_id=new_unique_id, version=2)
+    _LOGGER.info("Migrated WiNET entry from %s to %s", old_unique_id, new_unique_id)
     return True
 
 

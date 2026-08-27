@@ -6,11 +6,13 @@
         "description": "Enter the address of the WiNET module on your network. Setup only reads from the device.",
         "data": {
           "host": "Host or IP address",
-          "name": "Name"
+          "name": "Name",
+          "identifier": "Identify the module by"
         },
         "data_description": {
           "host": "For example 192.168.1.148. Give the module a static DHCP lease: it exposes no MAC address, so the integration identifies it by host.",
-          "name": "Leave blank to use the name configured on the module."
+          "name": "Leave blank to use the name configured on the module.",
+          "identifier": "The MAC is read from the module's /api/id endpoint. Older firmware does not serve it, in which case the host is used anyway."
         }
       }
     },
@@ -103,6 +105,18 @@
       "target_power": {
         "name": "Power level"
       },
+      "rpm_extractor": {
+        "name": "Extractor fan speed"
+      },
+      "water_raw": {
+        "name": "Water temperature (raw)"
+      },
+      "water_setpoint_raw": {
+        "name": "Water setpoint (raw)"
+      },
+      "firmware_status_text": {
+        "name": "Status reported by module"
+      },
       "auto_mode": {
         "name": "Module auto start/stop",
         "state": {
@@ -148,5 +162,13 @@
       }
     }
   },
-  "title": "WiNET pellet stove"
+  "title": "WiNET pellet stove",
+  "selector": {
+    "identifier": {
+      "options": {
+        "mac": "MAC address (survives a changed IP)",
+        "host": "IP address or hostname"
+      }
+    }
+  }
 }

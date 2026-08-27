@@ -10,6 +10,14 @@ MANUFACTURER: Final = "Net Software S.r.l."
 MODEL_NAME: Final = "WiNET"
 
 CONF_SCAN_INTERVAL: Final = "scan_interval"
+CONF_IDENTIFIER: Final = "identifier"
+
+#: How the config entry identifies the module. The MAC survives a changed lease but is
+#: only readable from the secondary ``/api/id`` endpoint, which older firmware lacks.
+IDENTIFIER_MAC: Final = "mac"
+IDENTIFIER_HOST: Final = "host"
+IDENTIFIERS: Final = [IDENTIFIER_MAC, IDENTIFIER_HOST]
+DEFAULT_IDENTIFIER: Final = IDENTIFIER_MAC
 DEFAULT_SCAN_INTERVAL: Final = 15
 MIN_SCAN_INTERVAL: Final = 5
 MAX_SCAN_INTERVAL: Final = 300

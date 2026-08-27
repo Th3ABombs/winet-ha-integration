@@ -370,5 +370,16 @@ ESP32-based — consistent with its ESP-NOW support, its dual boot partitions (`
 casually "GET-ing around" probe of this API actuates hardware. `GET /api/` on its own
 returns `{"result":false}`.
 
-This integration does not use the `/api` interface yet; it is documented here because it
-is the only local source of the MAC address and of the extractor and hydronic readings.
+This integration **uses** the `/api` interface where it is better, and keeps `/ajax`
+where `/ajax` is better:
+
+| Concern | Interface used | Why |
+|---|---|---|
+| Identity | `/api/id` | only local source of the MAC |
+| On/off | `/api/status/<1\|0>` | **absolute**, where `key=022` is a blind toggle |
+| Extractor speed, hydronic readings | `/api/global` | `key=020` never serves them |
+| Status, alarms, temperatures, scaling | `key=020` | `/api/global` carries no alarm and no `tempDiv`/`setTempDiv` |
+| Temperature and power setpoints | `/ajax/set-register` | the register encoding is documented by the module's own JS; `/api/temperature/air/<n>` has an unverified unit — one project scales it by ×2 |
+
+`/api/global` is polled alongside `key=020`. If it fails once the integration stops asking
+and carries on without those readings, so a firmware that lacks the interface still works.

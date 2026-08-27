@@ -56,6 +56,19 @@ class WinetData:
     tsense: list[list[Any]] = field(default_factory=list)
     module: dict[str, Any] = field(default_factory=dict)
 
+    # --- from the secondary /api interface, absent on modules that lack it ---
+    #: Status string decoded by the firmware itself, e.g. "OFF". Informational only:
+    #: the entities decode register 2 so their wording stays under our control.
+    firmware_status_text: str | None = None
+    #: Extractor fan speed. ``None`` when the board does not report it.
+    rpm_extractor: int | None = None
+    #: Hydronic readings, raw. ``None`` on an air stove. The scale is unverified --
+    #: see the note on the sensors -- so these are published unconverted.
+    water_raw: int | None = None
+    water_setpoint_raw: int | None = None
+    #: Whether /api/global answered at all this cycle.
+    api_available: bool = False
+
     @property
     def status_key(self) -> str:
         """Return the translation key for the current status."""
@@ -162,8 +175,16 @@ class WinetData:
         return AUTO_MODE_OPTIONS.get(self.auto_mode)
 
 
-def decode(runtime: dict[str, Any], module: dict[str, Any]) -> WinetData:
-    """Turn the two JSON payloads into a :class:`WinetData`."""
+def decode(
+    runtime: dict[str, Any],
+    module: dict[str, Any],
+    api_global: dict[str, Any] | None = None,
+) -> WinetData:
+    """Turn the JSON payloads into a :class:`WinetData`.
+
+    ``api_global`` is the optional ``/api/global`` body; modules without that interface
+    simply pass ``None`` and lose only the readings unique to it.
+    """
     registers: dict[int, int] = {}
     for entry in runtime.get("params") or []:
         if isinstance(entry, (list, tuple)) and len(entry) >= 2:
@@ -189,6 +210,16 @@ def decode(runtime: dict[str, Any], module: dict[str, Any]) -> WinetData:
         tsense=tsense.get("list") or [],
         module=module,
     )
+
+    if api_global:
+        data.api_available = True
+        data.firmware_status_text = api_global.get("description")
+        data.rpm_extractor = _as_int(api_global.get("rpmExtractor"), None)
+        data.water_raw = _as_int(api_global.get("water"), None)
+        data.water_setpoint_raw = _as_int(api_global.get("setWater"), None)
+        # Deliberately NOT read: `setAir`. It reports the module's own auto start/stop
+        # threshold (tStart), not the stove's setpoint: on the reference stove it says
+        # 20 while the web page shows the setpoint as the 10 held in register 50.
 
     raw_status = registers.get(REG_STATUS)
     data.raw_status = raw_status

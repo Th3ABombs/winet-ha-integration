@@ -24,7 +24,9 @@ Developed and verified against firmware **0.79**, `model = 0`,
 | `number` — Power level | Flame power 1…*n* (register 51) |
 | `sensor` — Status | Enum: off, waiting for flame, igniting, running, running (modulating), brazier cleaning, final cleaning, standby, alarm, alarm memory |
 | `sensor` — Alarm | Enum, decoded from the register-3 bitmask |
-| `sensor` — Measured temperature, **flue gas temperature**, target temperature, power level | |
+| `sensor` — Measured temperature, flue gas temperature, target temperature, power level | |
+| `sensor` — Extractor fan speed | From `/api/global`; empty when the board does not report it |
+| `sensor` — Water temperature / setpoint (raw) | Diagnostic, disabled by default — **unconverted**, see below |
 | `sensor` — Module auto start/stop | The module's own thermostat/schedule mode (read-only) |
 | `sensor` — Wi-Fi signal, RSSI, SSID, IP | Diagnostic; some disabled by default |
 | `sensor` — Status code, alarm bitmask, `Register 300…303` | Diagnostic, disabled by default — see [Unknown registers](#unknown-registers) |
@@ -52,9 +54,15 @@ You are asked for the module's host — for example `192.168.1.148`. A pasted
 Setup performs **reads only**: `/ajax/get-status` and `key=019`. Nothing is sent to the
 stove board.
 
-**Give the module a static DHCP lease.** No local endpoint exposes its MAC address, so
-the integration has to identify the device by host. If the IP changes you will have to
-re-add the integration.
+**Identifying the module.** Setup asks whether to key the device on its **MAC address**
+or on the **IP/hostname**. The MAC is read from `/api/id` and survives a changed DHCP
+lease, so it is the default. Choose the host if you prefer — or if your firmware does not
+serve `/api/id`, in which case the host is used regardless and you will want a static
+DHCP lease. Changing the choice later means removing and re-adding the integration.
+
+Upgrading from a version that predates this keeps your entities and their history: the
+config entry is migrated to the MAC and the entity registry is rewritten in the same
+step.
 
 On the reference installation the module sits at **-96 dBm** — right at the edge of
 usable. If polls time out intermittently, that is the Wi-Fi link, not the integration.
@@ -98,11 +106,14 @@ power. Most belong to hydronic stoves. The full list is in
 [`docs/PROTOCOL.md`](docs/PROTOCOL.md).
 
 The module also serves a **second REST interface, `/api/`**, that its own web page never
-calls. It exposes `rpmExtractor` and the hydronic `water` values — `null` on the
-reference air stove, but present on the interface — plus the MAC address, which is the
-only local source of a stable device identity. This integration does not use it yet;
-`docs/PROTOCOL.md` documents it, including which of its endpoints are setters that
-actuate the stove.
+calls. This integration uses it for the module's MAC, for the extractor and hydronic
+readings, and — importantly — for on/off, because `/api/status/1` is an *absolute*
+command where `/ajax`'s `key=022` is a blind toggle. Status, alarms and the temperature
+scaling still come from `/ajax`, which is the only place they exist.
+
+If a module does not serve `/api`, the integration notices on the first failed poll and
+carries on without it, falling back to the toggle. `docs/PROTOCOL.md` has the split, and
+a warning about which `/api` endpoints are setters that actuate the stove.
 
 Air flow, water pressure and real power are served by neither interface.
 
@@ -142,6 +153,15 @@ the toggle or a register write. If you identify a register, please open an issue
 
 Registers 59–64 are the stove's clock. On the reference stove they read `0`/`255`
 alternately, i.e. the board reports no clock, so no entity is created for them.
+
+## Readings this integration does not convert
+
+`water` and `setWater` from `/api/global` are published **raw**, as diagnostic entities
+disabled by default. They are `null` on the air stove this was developed against, so
+their scale could not be verified — ESPHome divides the equivalent board reading by 2,
+but whether `/api` has already applied that is unknown. Publishing an unconverted number
+is better than a temperature entity that might be out by a factor of two. If you have a
+hydronic stove and can compare against its display, please open an issue.
 
 ## The `winet.set_register` service
 
