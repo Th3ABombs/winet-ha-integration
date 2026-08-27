@@ -105,23 +105,25 @@ def test_modulating_substitution() -> None:
 
 def test_final_cleaning_is_on_for_the_firmware_but_off_for_a_thermostat() -> None:
     """The distinction the power command depends on."""
-    runtime = json.loads(json.dumps(RUNTIME_OFF))
-    runtime["params"] = [
-        [reg, STATUS_FINAL_CLEANING if reg == 2 else value]
-        for reg, value in runtime["params"]
-    ]
-    data = decode(runtime, MODULE_STATUS)
+    data = decode(_with_registers(RUNTIME_OFF, r2=STATUS_FINAL_CLEANING), MODULE_STATUS)
     assert data.is_on is True
     assert data.is_heat_on is False
     assert data.is_shutting_down is True
 
 
+def _with_registers(base: dict, **overrides: int) -> dict:
+    """Return a copy of ``base`` with the named registers replaced."""
+    runtime = json.loads(json.dumps(base))
+    replacements = {int(k.lstrip("r")): v for k, v in overrides.items()}
+    runtime["params"] = [
+        [reg, replacements.get(reg, value)] for reg, value in runtime["params"]
+    ]
+    return runtime
+
+
 def test_alarm_bitmask_lists_every_bit_but_shows_the_lowest() -> None:
     """Register 3 is a bitmask; the firmware displays only the lowest set bit."""
-    runtime = json.loads(json.dumps(RUNTIME_OFF))
-    runtime["params"] = [
-        [reg, 0b0001_1001 if reg == 3 else value] for reg, value in runtime["params"]
-    ]
+    runtime = _with_registers(RUNTIME_OFF, r2=STATUS_ALARM, r3=0b0001_1001)
     data = decode(runtime, MODULE_STATUS)
     assert data.active_alarms == [
         "fumes_probe_failure",
@@ -132,15 +134,42 @@ def test_alarm_bitmask_lists_every_bit_but_shows_the_lowest() -> None:
     assert data.has_alarm is True
 
 
+def test_register_3_is_ignored_unless_the_stove_is_in_alarm() -> None:
+    """Regression: register 3 read 25 on a stove burning normally at 230 °C.
+
+    As a bitmask that would be three simultaneous alarms. The module's own web page
+    only reads register 3 while the alarm box is up, i.e. for statuses 8 and 9, so
+    trusting it while the stove is working produces a permanent false alarm.
+    """
+    runtime = _with_registers(RUNTIME_OFF, r2=STATUS_WORK, r3=25)
+    data = decode(runtime, MODULE_STATUS)
+    assert data.has_alarm is False
+    assert data.active_alarms == []
+    assert data.alarm_key == "none"
+    # The raw register is still published, untouched, as a diagnostic.
+    assert data.alarm_code == 25
+
+
+def test_register_3_is_ignored_when_the_stove_is_off() -> None:
+    """Same gate applies to every non-alarm status, not just 'working'."""
+    data = decode(_with_registers(RUNTIME_OFF, r3=0b0000_0010), MODULE_STATUS)
+    assert data.has_alarm is False
+    assert data.alarm_key == "none"
+
+
 def test_alarm_status_without_bits_still_flags_a_problem() -> None:
     """Status 8 is an alarm even if register 3 happens to read 0."""
-    runtime = json.loads(json.dumps(RUNTIME_OFF))
-    runtime["params"] = [
-        [reg, STATUS_ALARM if reg == 2 else value] for reg, value in runtime["params"]
-    ]
-    data = decode(runtime, MODULE_STATUS)
+    data = decode(_with_registers(RUNTIME_OFF, r2=STATUS_ALARM), MODULE_STATUS)
     assert data.has_alarm is True
     assert data.status_key == "alarm"
+    assert data.alarm_key == "none", "no bits set means no cause to name"
+
+
+def test_alarm_memory_status_also_counts() -> None:
+    """Status 9 keeps the alarm raised until it is acknowledged."""
+    data = decode(_with_registers(RUNTIME_OFF, r2=9, r3=0b0001_0000), MODULE_STATUS)
+    assert data.has_alarm is True
+    assert data.alarm_key == "no_pellet"
 
 
 def test_missing_and_malformed_payload_fields_do_not_raise() -> None:

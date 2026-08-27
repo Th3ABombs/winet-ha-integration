@@ -142,14 +142,33 @@ class WinetData:
 
     @property
     def alarm_code(self) -> int | None:
-        """Return the raw alarm bitmask."""
+        """Return register 3 raw, whatever it happens to hold."""
         return self.registers.get(REG_ALARM)
 
     @property
+    def has_alarm(self) -> bool:
+        """Return whether the stove is in an alarm condition.
+
+        Determined by the **status**, not by register 3. The module's own web page
+        does the same: it raises the alarm box only for statuses 8 and 9, and reads
+        register 3 only while that box is up — otherwise it blanks the text outright.
+
+        This is not pedantry about matching the firmware. On the reference stove
+        register 3 read 25 while the stove burned normally at 230 °C flue temperature;
+        as a bitmask that is "flue probe failure + ignition failure + out of pellets"
+        at once, which was not happening. Trusting register 3 outside an alarm state
+        produces a permanent false alarm.
+        """
+        return self.status in STATUS_ALARMS
+
+    @property
     def active_alarms(self) -> list[str]:
-        """Return the translation keys of every set alarm bit."""
+        """Return the translation keys of every set alarm bit.
+
+        Empty unless the stove is actually in alarm — see :attr:`has_alarm`.
+        """
         code = self.alarm_code
-        if not code:
+        if not self.has_alarm or not code:
             return []
         return [key for bit, key in enumerate(ALARM_BIT_KEYS) if code & (1 << bit)]
 
@@ -161,11 +180,6 @@ class WinetData:
         """
         active = self.active_alarms
         return active[0] if active else ALARM_NONE_KEY
-
-    @property
-    def has_alarm(self) -> bool:
-        """Return whether the stove is in an alarm condition."""
-        return bool(self.alarm_code) or self.status in STATUS_ALARMS
 
     @property
     def auto_mode_key(self) -> str | None:

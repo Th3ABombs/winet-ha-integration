@@ -235,8 +235,16 @@ back to `unknown` elsewhere.
 | 6 | Sicurezza termica |
 | 7 | Vano pellet aperto |
 
-The firmware displays only the lowest set bit. The alarm box is shown only while
-status is `8` or `9`.
+The firmware displays only the lowest set bit, and — importantly — **reads register 3
+only while status is `8` or `9`**. Outside those statuses it raises no alarm box and
+blanks the decoded text outright.
+
+That gate is load-bearing, not cosmetic. On the reference stove register 3 read **25**
+while the stove was burning normally with a 230 °C flue temperature. As a bitmask that
+is flue-probe failure + ignition failure + out-of-pellets simultaneously, which was
+plainly not happening. Whatever register 3 holds outside an alarm state, it is not an
+alarm bitmask, so anything reading it unconditionally will report a permanent false
+alarm. This integration applies the same gate the firmware does.
 
 ---
 

@@ -23,7 +23,7 @@ Developed and verified against firmware **0.79**, `model = 0`,
 | `climate` | On/off, temperature setpoint, measured temperature, `hvac_action` |
 | `number` — Power level | Flame power 1…*n* (register 51) |
 | `sensor` — Status | Enum: off, waiting for flame, igniting, running, running (modulating), brazier cleaning, final cleaning, standby, alarm, alarm memory |
-| `sensor` — Alarm | Enum, decoded from the register-3 bitmask |
+| `sensor` — Alarm | Enum, decoded from the register-3 bitmask — only while the stove is in an alarm state, see below |
 | `sensor` — Measured temperature, flue gas temperature, target temperature, power level | |
 | `sensor` — Extractor fan speed | From `/api/global`; empty when the board does not report it |
 | `sensor` — Water temperature / setpoint (raw) | Diagnostic, disabled by default — **unconverted**, see below |
@@ -155,6 +155,15 @@ the toggle or a register write. If you identify a register, please open an issue
 
 Registers 59–64 are the stove's clock. On the reference stove they read `0`/`255`
 alternately, i.e. the board reports no clock, so no entity is created for them.
+
+## Why alarms are read only in an alarm state
+
+Register 3 is the alarm bitmask, but it is only meaningful while the status is `8` or
+`9`. The module's own web page enforces that: outside those statuses it never reads the
+register. On the reference stove register 3 read `25` while the stove burned normally at
+230 °C — three simultaneous alarms, if you believed it. This integration applies the same
+gate, so the alarm entities stay quiet unless the stove is genuinely in alarm. The raw
+bitmask is still published as a disabled-by-default diagnostic sensor.
 
 ## When the power entity stays empty
 
