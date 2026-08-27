@@ -116,6 +116,11 @@ module's own local web page never displays it.
 Registers **300–303** are reported but never referenced by the module's web app. On the
 reference stove, 303 read `8` while running and `0` when off.
 
+They are not board registers: the Micronova protocol addresses memory with a single byte,
+so ids in the 300s cannot reach the stove's controller. They are values the module itself
+computes or holds — which also means no amount of comparing against ESPHome will identify
+them.
+
 They are exposed as diagnostic sensors, **disabled by default**. Enable them and watch
 the stove through an ignition/shutdown cycle to work out what they are — or use the
 bundled read-only probe:

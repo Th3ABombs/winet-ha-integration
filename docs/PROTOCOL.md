@@ -138,7 +138,7 @@ off the host. Give the module a static DHCP lease.
 | 62 | 1 | Stove clock: day | `1..31` |
 | 63 | 1 | Stove clock: month | `1..12` |
 | 64 | 1 | Stove clock: year | `raw + 2000` |
-| 300–303 | — | unknown, module-internal | `303` was `8` while running, `0` when off |
+| 300–303 | — | unknown, module-internal — **not** board registers | `303` was `8` while running, `0` when off |
 
 Register 4's offset is not a quirk of one customization profile: **30…285 inclusive is
 exactly 256 values**, i.e. one byte. The module shifts the reading by 30 °C to gain
@@ -285,6 +285,19 @@ address, and the module's `memory` field (0/1) is its own abstraction over the p
 Note that ESPHome reads the flue gas temperature with **no offset**, while this module
 applies `+30`. Both are consistent: the module re-packs the board's value into a byte
 spanning 30–285 °C, as the exact 256-value range shows.
+
+**Registers 300–303 cannot be board registers at all.** ESPHome declares the protocol's
+address field as `uint8_t memory_address`, so a Micronova address is one byte: 0–255.
+Ids in the 300s are outside that space by construction, and they carry no `txt_p<n>`
+label. `management.js` never reads them either — the only numeric matches for 299–304 in
+the module's whole JavaScript bundle are a jQuery HTTP status check (`e < 300`) and an
+Ajax timeout (`a < 3000`).
+
+They are therefore values the module computes or holds itself, published for a consumer
+that is not the local web page — most plausibly the vendor's cloud/mobile app, which
+reaches the same dispatcher through `default.aspx/PostAction` with the same `key` codes.
+What they mean is still open: on the reference stove 300–302 read `0` throughout, while
+303 read `8` during a burn and `0` once the stove reached OFF.
 
 **No draught sensor exists on either side.** ESPHome exposes water *pressure* (hydronic
 circuit) and no depression reading; this module reports a failed draught only as alarm
