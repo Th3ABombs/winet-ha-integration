@@ -17,10 +17,10 @@ Developed and verified against firmware **0.79**, `model = 0`,
 | `number` — Power level | Flame power 1…*n* (register 51) |
 | `sensor` — Status | Enum: off, waiting for flame, igniting, running, running (modulating), brazier cleaning, final cleaning, standby, alarm, alarm memory |
 | `sensor` — Alarm | Enum, decoded from the register-3 bitmask |
-| `sensor` — Measured / target temperature, power level | |
+| `sensor` — Measured temperature, **flue gas temperature**, target temperature, power level | |
 | `sensor` — Module auto start/stop | The module's own thermostat/schedule mode (read-only) |
 | `sensor` — Wi-Fi signal, RSSI, SSID, IP | Diagnostic; some disabled by default |
-| `sensor` — Status code, alarm bitmask, `Register 4`, `Register 300…303` | Diagnostic, disabled by default — see [Unknown registers](#unknown-registers) |
+| `sensor` — Status code, alarm bitmask, `Register 300…303` | Diagnostic, disabled by default — see [Unknown registers](#unknown-registers) |
 | `binary_sensor` — Alarm, Running, Module firmware update | |
 
 Plus a `winet.set_register` service for writing raw registers (advanced).
@@ -83,11 +83,24 @@ because the cycle cannot be interrupted and the user's intent was off. The *Stat
 sensor keeps reporting the real phase (`final_cleaning`), and the *Running* binary sensor
 keeps the firmware's own notion.
 
+## What the module does *not* report
+
+The module's own JavaScript defines controls for many more registers than it actually
+serves — water temperature, air flow, water pressure, extractor RPM, real power — and
+`key=020` returns a fixed set that includes none of them. There is no arbitrary-read
+endpoint, so **they cannot be recovered through this interface**. Most belong to hydronic
+stoves anyway. The full list is in [`docs/PROTOCOL.md`](docs/PROTOCOL.md).
+
+In particular there is **no analogue draught/depression reading**: the board reports a
+failed draught as alarm bit 5 ("no pressure"), which is a pressure switch, not a sensor.
+
+Flue gas temperature *is* available — register 4, offset by 30 °C — even though the
+module's own local web page never displays it.
+
 ## Unknown registers
 
-The module reports registers whose meaning its own web app never uses: **4** and
-**300–303**. On the reference stove, register 4 read `200` while running and `0` when
-off, and 303 read `8` while running and `0` when off.
+Registers **300–303** are reported but never referenced by the module's web app. On the
+reference stove, 303 read `8` while running and `0` when off.
 
 They are exposed as diagnostic sensors, **disabled by default**. Enable them and watch
 the stove through an ignition/shutdown cycle to work out what they are — or use the

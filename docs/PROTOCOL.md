@@ -129,7 +129,7 @@ off the host. Give the module a static DHCP lease.
 | 0 | 0 (r/o) | Measured temperature | `raw × tempDiv` °C, 1 decimal |
 | 2 | — | **Status** | see table below |
 | 3 | — | **Alarm bitmask** | see table below |
-| 4 | — | unknown | observed `200` while the stove ran, `0` when off |
+| 4 | 0 (r/o) | **Flue gas temperature** | `raw + 30` °C (`mul=1, offset=30`, range 30–285) |
 | 50 | 1 | Target temperature | `raw × setTempDiv` °C, UI range 5–40 |
 | 51 | 1 | Target power level | `1..numPower`; `255` = not available |
 | 59 | 1 | Stove clock: weekday | `1..7` |
@@ -140,9 +140,44 @@ off the host. Give the module a static DHCP lease.
 | 64 | 1 | Stove clock: year | `raw + 2000` |
 | 300–303 | — | unknown, module-internal | `303` was `8` while running, `0` when off |
 
+Register 4's offset explains an otherwise suspicious reading: it is `0` on a stove that is
+off, while the room sits at 27.5 °C. With the offset applied that is 30 °C — a cold probe,
+not a missing value. Observed `200` (= 230 °C) while the stove was burning.
+
 Registers 59–64 read back `0`/`255` alternately on this stove, i.e. the board reports no
-clock. Registers 4 and 300–303 are never referenced by `management.js`; they are exposed
-as disabled-by-default diagnostic entities so they can be identified by observation.
+clock. Registers 300–303 are never referenced by `management.js`; they are exposed as
+disabled-by-default diagnostic entities so they can be identified by observation.
+
+### Registers the firmware knows but this module does not send
+
+`management.js` defines parameter controls for many more registers than `key=020`
+returns, and labels them via `txt_p<register>` keys. They are listed here because the
+obvious question — "can I read the flue pressure?" — has a definite answer: **no**, there
+is no arbitrary-read endpoint, and the `key=020` set is fixed by the firmware.
+
+| Reg | Label | Sent by this module? |
+|---|---|---|
+| 1 | Water temperature | no |
+| 4 | **Flue gas temperature** | **yes** |
+| 5, 8 | Flow (air flow meter) | no |
+| 6 | Water pressure | no |
+| 7 | Remote control temperature | no |
+| 10 | Flue extractor (fan speed) | no |
+| 11, 12 | Buffer tank / heater temperature | no |
+| 13 | Real power | no |
+| 32, 33 | Buffer tank bottom / top temperature | no |
+| 34–36 | Pellet mode, eco/standby, season | no |
+| 37–39, 49, 52 | Pump / boiler / buffer / DHW setpoints | no |
+| 40, 41, 47, 48 | Ducting channel 1 & 2 setpoints | no |
+| 42 | Selected probe | no |
+| 43, 44 | Pellet / air percentage | no |
+| 45, 46 | Fan enable / fan setpoint | no |
+
+Most of these belong to hydronic (`idro`) stoves. On the reference unit — an air stove,
+`model = 0` — only register 4 from this list is actually served.
+
+There is **no analogue depression reading**. The board signals a failed draught through
+alarm bit 5 ("no pressure"), i.e. a pressure switch, not a transducer.
 
 The register-to-meaning mapping and the UI limits come from the `<label class="parameter">`
 attributes in `management.html`:

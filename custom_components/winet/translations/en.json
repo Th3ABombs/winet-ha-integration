@@ -94,6 +94,9 @@
       "measured_temperature": {
         "name": "Measured temperature"
       },
+      "flue_gas_temperature": {
+        "name": "Flue gas temperature"
+      },
       "target_temperature": {
         "name": "Target temperature"
       },

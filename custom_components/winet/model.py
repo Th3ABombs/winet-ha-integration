@@ -15,8 +15,10 @@ from .const import (
     ALARM_NONE_KEY,
     AUTO_MODE_OPTIONS,
     DEFAULT_NUM_POWER,
+    FLUE_TEMP_OFFSET,
     RAW_UNAVAILABLE,
     REG_ALARM,
+    REG_FLUE_TEMP,
     REG_MEASURED_TEMP,
     REG_STATUS,
     REG_TARGET_POWER,
@@ -96,6 +98,18 @@ class WinetData:
         if raw is None:
             return None
         return round(raw * self.temp_div, 1)
+
+    @property
+    def flue_gas_temperature(self) -> float | None:
+        """Return the flue gas temperature in °C.
+
+        Register 4 is offset by 30 °C, so a raw 0 is a cold probe at 30 °C rather than a
+        missing reading — which is why the register reads 0 on a stove that is off.
+        """
+        raw = self.registers.get(REG_FLUE_TEMP)
+        if raw is None:
+            return None
+        return float(raw + FLUE_TEMP_OFFSET)
 
     @property
     def target_temperature(self) -> float | None:

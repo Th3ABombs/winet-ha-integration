@@ -56,7 +56,7 @@ REGISTER_NAMES = {
     0: "measured temp (raw)",
     2: "status",
     3: "alarm bitmask",
-    4: "unknown",
+    4: "flue gas temp (raw, +30 = °C)",
     50: "target temp (raw)",
     51: "target power",
     59: "clock weekday",
@@ -109,6 +109,7 @@ def describe(runtime: dict, module: dict) -> str:
         f"measured={registers.get(0, 0) * temp_div:.1f}°C  "
         f"target={registers.get(50, 0) * set_div:.1f}°C  "
         f"power={registers.get(51)}  "
+        f"flue={registers.get(4, 0) + 30}°C  "
         f"alarm=0x{alarm:02X} {active or ''}",
     ]
     unknown = {

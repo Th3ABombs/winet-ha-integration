@@ -41,6 +41,25 @@ def test_measured_temperature_applies_temp_div() -> None:
     assert data.measured_temperature == RUNTIME_OFF["logTemp"] / 10
 
 
+def test_flue_gas_temperature_is_offset_by_30_degrees() -> None:
+    """Register 4 counts from 30 °C, per the module's own parameter definition."""
+    running = decode(RUNTIME_RUNNING, MODULE_STATUS)
+    assert running.registers[4] == 200
+    assert running.flue_gas_temperature == 230.0
+
+    off = decode(RUNTIME_OFF, MODULE_STATUS)
+    # A raw 0 on a cold stove is 30 °C, not a missing reading -- which is why the
+    # register reads 0 while the room itself sits at 27.5 °C.
+    assert off.registers[4] == 0
+    assert off.flue_gas_temperature == 30.0
+    assert off.measured_temperature == 27.5
+
+
+def test_flue_gas_temperature_absent_when_not_reported() -> None:
+    """A payload without register 4 yields no reading rather than 30 °C."""
+    assert decode({"params": [[2, 0]]}, {}).flue_gas_temperature is None
+
+
 def test_setpoints() -> None:
     """Setpoint 10 with setTempDiv 1 reads as 10 °C; power 255 is 'not reported'."""
     data = decode(RUNTIME_OFF, MODULE_STATUS)

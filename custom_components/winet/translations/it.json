@@ -40,10 +40,22 @@
       "name": "Scrivi registro",
       "description": "Scrive un valore grezzo in un registro della stufa. Uso avanzato: un registro o un valore sbagliato può modificare la configurazione della stufa. I valori sono in unità grezze di registro, non scalate.",
       "fields": {
-        "device_id": { "name": "Dispositivo", "description": "Il modulo WiNET su cui scrivere." },
-        "register": { "name": "Registro", "description": "Id del registro, come riportato dal modulo." },
-        "value": { "name": "Valore", "description": "Valore grezzo del registro." },
-        "memory": { "name": "Memoria", "description": "Volatile (RAM) o persistente (EEPROM). I setpoint usano la persistente." }
+        "device_id": {
+          "name": "Dispositivo",
+          "description": "Il modulo WiNET su cui scrivere."
+        },
+        "register": {
+          "name": "Registro",
+          "description": "Id del registro, come riportato dal modulo."
+        },
+        "value": {
+          "name": "Valore",
+          "description": "Valore grezzo del registro."
+        },
+        "memory": {
+          "name": "Memoria",
+          "description": "Volatile (RAM) o persistente (EEPROM). I setpoint usano la persistente."
+        }
       }
     }
   },
@@ -79,9 +91,18 @@
           "pellet_compartment_open": "Vano pellet aperto"
         }
       },
-      "measured_temperature": { "name": "Temperatura misurata" },
-      "target_temperature": { "name": "Temperatura impostata" },
-      "target_power": { "name": "Potenza" },
+      "measured_temperature": {
+        "name": "Temperatura misurata"
+      },
+      "flue_gas_temperature": {
+        "name": "Temperatura fumi"
+      },
+      "target_temperature": {
+        "name": "Temperatura impostata"
+      },
+      "target_power": {
+        "name": "Potenza"
+      },
       "auto_mode": {
         "name": "Avvio/arresto automatico del modulo",
         "state": {
@@ -91,20 +112,40 @@
           "threshold_on_timeslot": "Temperatura soglia su fascia oraria"
         }
       },
-      "wifi_signal": { "name": "Livello segnale Wi-Fi" },
-      "rssi": { "name": "RSSI Wi-Fi" },
-      "ssid": { "name": "Rete Wi-Fi" },
-      "ip_address": { "name": "Indirizzo IP" },
-      "alarm_code": { "name": "Bitmask allarmi" },
-      "status_code": { "name": "Codice di stato" }
+      "wifi_signal": {
+        "name": "Livello segnale Wi-Fi"
+      },
+      "rssi": {
+        "name": "RSSI Wi-Fi"
+      },
+      "ssid": {
+        "name": "Rete Wi-Fi"
+      },
+      "ip_address": {
+        "name": "Indirizzo IP"
+      },
+      "alarm_code": {
+        "name": "Bitmask allarmi"
+      },
+      "status_code": {
+        "name": "Codice di stato"
+      }
     },
     "binary_sensor": {
-      "alarm": { "name": "Allarme" },
-      "running": { "name": "In funzione" },
-      "firmware_update": { "name": "Aggiornamento firmware del modulo" }
+      "alarm": {
+        "name": "Allarme"
+      },
+      "running": {
+        "name": "In funzione"
+      },
+      "firmware_update": {
+        "name": "Aggiornamento firmware del modulo"
+      }
     },
     "number": {
-      "target_power": { "name": "Potenza" }
+      "target_power": {
+        "name": "Potenza"
+      }
     }
   },
   "title": "Stufa a pellet WiNET"

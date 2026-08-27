@@ -21,7 +21,7 @@ DEFAULT_NAME: Final = "Stufa"
 REG_MEASURED_TEMP: Final = 0
 REG_STATUS: Final = 2
 REG_ALARM: Final = 3
-REG_UNKNOWN_4: Final = 4
+REG_FLUE_TEMP: Final = 4
 REG_TARGET_TEMP: Final = 50
 REG_TARGET_POWER: Final = 51
 REG_CLOCK_WEEKDAY: Final = 59
@@ -31,9 +31,13 @@ REG_CLOCK_DAY: Final = 62
 REG_CLOCK_MONTH: Final = 63
 REG_CLOCK_YEAR: Final = 64
 
+#: Register 4 counts from 30 °C, not from zero: the module's own parameter definition
+#: is ``mul=1, offset=30, min=30, max=285``. A raw 0 means 30 °C, not a dead probe.
+FLUE_TEMP_OFFSET: Final = 30
+
 #: Registers that `management.js` never references. Exposed as disabled-by-default
 #: diagnostics so they can be identified by watching a running stove.
-UNDOCUMENTED_REGISTERS: Final = (REG_UNKNOWN_4, 300, 301, 302, 303)
+UNDOCUMENTED_REGISTERS: Final = (300, 301, 302, 303)
 
 MEMORY_VOLATILE: Final = 0
 MEMORY_PERSISTENT: Final = 1

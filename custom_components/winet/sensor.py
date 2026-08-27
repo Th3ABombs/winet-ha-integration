@@ -63,6 +63,15 @@ SENSORS: tuple[WinetSensorDescription, ...] = (
         value_fn=lambda data: data.measured_temperature,
     ),
     WinetSensorDescription(
+        key="flue_gas_temperature",
+        translation_key="flue_gas_temperature",
+        device_class=SensorDeviceClass.TEMPERATURE,
+        native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        state_class=SensorStateClass.MEASUREMENT,
+        suggested_display_precision=0,
+        value_fn=lambda data: data.flue_gas_temperature,
+    ),
+    WinetSensorDescription(
         key="target_temperature",
         translation_key="target_temperature",
         device_class=SensorDeviceClass.TEMPERATURE,
