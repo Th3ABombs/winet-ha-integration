@@ -156,6 +156,18 @@ the toggle or a register write. If you identify a register, please open an issue
 Registers 59–64 are the stove's clock. On the reference stove they read `0`/`255`
 alternately, i.e. the board reports no clock, so no entity is created for them.
 
+## When the power entity stays empty
+
+`255` is the module's "the board did not answer" marker. On the reference stove the power
+setpoint register reads a constant `255`, so the **Power level** entity has nothing to
+show and stays empty — that is the stove's controller not reporting it, not a fault in
+the integration. The module's own web page shows the same thing as a literal `255` in its
+"Set power" field, because its controls render raw values without clamping to their own
+declared 1–5 range.
+
+Whether *writing* the power setpoint still works on such a stove is unknown: there is no
+read-back to confirm it with.
+
 ## Readings this integration does not convert
 
 `water` and `setWater` from `/api/global` are published **raw**, as diagnostic entities

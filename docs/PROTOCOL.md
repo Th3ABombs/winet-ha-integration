@@ -131,7 +131,7 @@ off the host. Give the module a static DHCP lease.
 | 3 | — | **Alarm bitmask** | see table below |
 | 4 | 0 (r/o) | **Flue gas temperature** | `raw + 30` °C (`mul=1, offset=30`, range 30–285) |
 | 50 | 1 | Target temperature | `raw × setTempDiv` °C, UI range 5–40 |
-| 51 | 1 | Target power level | `1..numPower`; `255` = not available |
+| 51 | 1 | Target power level | `1..numPower`; `255` = **not reported by the board** |
 | 59 | 1 | Stove clock: weekday | `1..7` |
 | 60 | 1 | Stove clock: hour | BCD (`0x23` = 23) |
 | 61 | 1 | Stove clock: minute | BCD (`0x59` = 59) |
@@ -150,8 +150,14 @@ Register 4's offset explains an otherwise suspicious reading: it is `0` on a sto
 off, while the room sits at 27.5 °C. With the offset applied that is 30 °C — a cold probe,
 not a missing value. Observed `200` (= 230 °C) while the stove was burning.
 
-Registers 59–64 read back `0`/`255` alternately on this stove, i.e. the board reports no
-clock. Registers 300–303 are never referenced by `management.js`; they are exposed as
+`255` is the module's "the board did not answer" marker, not a value. Registers 59–64
+read back `0`/`255` alternately on the reference stove, i.e. the board reports no clock,
+and register 51 reads a constant `255`, i.e. it reports no power setpoint either.
+
+Worth knowing when comparing against the module's own web page: its numeric controls
+render `raw × mul + offset` **without clamping to the declared min/max**
+(`k.text(((s*A)+f).toFixed(D)+q)`), so the "Set power" field, whose range is 1–5, happily
+displays `255`. That is the no-data marker leaking into the UI, not a real setting. Registers 300–303 are never referenced by `management.js`; they are exposed as
 disabled-by-default diagnostic entities so they can be identified by observation.
 
 ### Registers the firmware knows but this module does not send
