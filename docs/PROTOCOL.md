@@ -375,7 +375,7 @@ where `/ajax` is better:
 
 | Concern | Interface used | Why |
 |---|---|---|
-| Identity | `/api/id` | only local source of the MAC |
+| Identity (new installs) | `/api/id` | only local source of the MAC |
 | On/off | `/api/status/<1\|0>` | **absolute**, where `key=022` is a blind toggle |
 | Extractor speed, hydronic readings | `/api/global` | `key=020` never serves them |
 | Status, alarms, temperatures, scaling | `key=020` | `/api/global` carries no alarm and no `tempDiv`/`setTempDiv` |

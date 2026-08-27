@@ -60,9 +60,11 @@ lease, so it is the default. Choose the host if you prefer — or if your firmwa
 serve `/api/id`, in which case the host is used regardless and you will want a static
 DHCP lease. Changing the choice later means removing and re-adding the integration.
 
-Upgrading from a version that predates this keeps your entities and their history: the
-config entry is migrated to the MAC and the entity registry is rewritten in the same
-step.
+**Upgrading an existing install changes nothing about its identity.** An integration set
+up before this option existed keeps its host-based key, so entities, history, the device
+and anything referencing it all survive the update untouched. Switching it to the MAC
+means removing and re-adding the integration — deliberately, because re-keying replaces
+the device and orphans automations that point at it.
 
 On the reference installation the module sits at **-96 dBm** — right at the edge of
 usable. If polls time out intermittently, that is the Wi-Fi link, not the integration.
