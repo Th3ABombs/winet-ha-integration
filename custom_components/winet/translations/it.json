@@ -1,0 +1,111 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Modulo WiNET",
+        "description": "Inserisci l'indirizzo del modulo WiNET sulla tua rete. La configurazione esegue solo letture sul dispositivo.",
+        "data": {
+          "host": "Host o indirizzo IP",
+          "name": "Nome"
+        },
+        "data_description": {
+          "host": "Per esempio 192.168.1.148. Assegna al modulo un lease DHCP statico: non espone il proprio MAC, quindi l'integrazione lo identifica dall'host.",
+          "name": "Lascia vuoto per usare il nome configurato sul modulo."
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Impossibile raggiungere il modulo.",
+      "unexpected_response": "Il modulo ha risposto, ma non con il payload WiNET atteso."
+    },
+    "abort": {
+      "already_configured": "Questo modulo è già configurato."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Opzioni WiNET",
+        "data": {
+          "scan_interval": "Intervallo di aggiornamento (secondi)"
+        },
+        "data_description": {
+          "scan_interval": "L'interfaccia web del modulo interroga la stufa ogni 0,75 s, quindi intervalli brevi sono sicuri."
+        }
+      }
+    }
+  },
+  "services": {
+    "set_register": {
+      "name": "Scrivi registro",
+      "description": "Scrive un valore grezzo in un registro della stufa. Uso avanzato: un registro o un valore sbagliato può modificare la configurazione della stufa. I valori sono in unità grezze di registro, non scalate.",
+      "fields": {
+        "device_id": { "name": "Dispositivo", "description": "Il modulo WiNET su cui scrivere." },
+        "register": { "name": "Registro", "description": "Id del registro, come riportato dal modulo." },
+        "value": { "name": "Valore", "description": "Valore grezzo del registro." },
+        "memory": { "name": "Memoria", "description": "Volatile (RAM) o persistente (EEPROM). I setpoint usano la persistente." }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "status": {
+        "name": "Stato",
+        "state": {
+          "off": "Spenta",
+          "wait_flame": "Attesa fiamma",
+          "ignition": "Accensione",
+          "work": "Lavoro",
+          "work_modulating": "Lavoro (modula)",
+          "brazier_cleaning": "Pulizia braciere",
+          "final_cleaning": "Pulizia finale",
+          "standby": "Stand-by",
+          "alarm": "Allarme",
+          "alarm_memory": "Memoria allarme",
+          "unknown": "Sconosciuto"
+        }
+      },
+      "alarm": {
+        "name": "Allarme",
+        "state": {
+          "none": "Nessuno",
+          "fumes_probe_failure": "Guasto sonda fumi",
+          "fumes_overtemperature": "Sovratemperatura fumi",
+          "extractor_malfunction": "Malfunzionamento estrattore",
+          "ignition_failure": "Mancata accensione",
+          "no_pellet": "Mancanza pellet",
+          "no_pressure": "Mancanza pressione",
+          "thermal_safety": "Sicurezza termica",
+          "pellet_compartment_open": "Vano pellet aperto"
+        }
+      },
+      "measured_temperature": { "name": "Temperatura misurata" },
+      "target_temperature": { "name": "Temperatura impostata" },
+      "target_power": { "name": "Potenza" },
+      "auto_mode": {
+        "name": "Avvio/arresto automatico del modulo",
+        "state": {
+          "disabled": "Disattivato",
+          "temperature": "Temperatura",
+          "chrono": "Crono",
+          "threshold_on_timeslot": "Temperatura soglia su fascia oraria"
+        }
+      },
+      "wifi_signal": { "name": "Livello segnale Wi-Fi" },
+      "rssi": { "name": "RSSI Wi-Fi" },
+      "ssid": { "name": "Rete Wi-Fi" },
+      "ip_address": { "name": "Indirizzo IP" },
+      "alarm_code": { "name": "Bitmask allarmi" },
+      "status_code": { "name": "Codice di stato" }
+    },
+    "binary_sensor": {
+      "alarm": { "name": "Allarme" },
+      "running": { "name": "In funzione" },
+      "firmware_update": { "name": "Aggiornamento firmware del modulo" }
+    },
+    "number": {
+      "target_power": { "name": "Potenza" }
+    }
+  },
+  "title": "Stufa a pellet WiNET"
+}

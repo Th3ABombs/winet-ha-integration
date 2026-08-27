@@ -1,0 +1,149 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "WiNET module",
+        "description": "Enter the address of the WiNET module on your network. Setup only reads from the device.",
+        "data": {
+          "host": "Host or IP address",
+          "name": "Name"
+        },
+        "data_description": {
+          "host": "For example 192.168.1.148. Give the module a static DHCP lease: it exposes no MAC address, so the integration identifies it by host.",
+          "name": "Leave blank to use the name configured on the module."
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Could not reach the module.",
+      "unexpected_response": "The module answered, but not with the expected WiNET payload."
+    },
+    "abort": {
+      "already_configured": "This module is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "WiNET options",
+        "data": {
+          "scan_interval": "Polling interval (seconds)"
+        },
+        "data_description": {
+          "scan_interval": "The module's own web interface polls every 0.75 s, so short intervals are safe."
+        }
+      }
+    }
+  },
+  "services": {
+    "set_register": {
+      "name": "Write register",
+      "description": "Writes a raw value into a stove register. Advanced: a wrong register or value can change the stove's configuration. Values are raw register units, not scaled.",
+      "fields": {
+        "device_id": {
+          "name": "Device",
+          "description": "The WiNET module to write to."
+        },
+        "register": {
+          "name": "Register",
+          "description": "Register id, as reported by the module."
+        },
+        "value": {
+          "name": "Value",
+          "description": "Raw register value."
+        },
+        "memory": {
+          "name": "Memory",
+          "description": "Volatile (RAM) or persistent (EEPROM). Setpoints use persistent."
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "status": {
+        "name": "Status",
+        "state": {
+          "off": "Off",
+          "wait_flame": "Waiting for flame",
+          "ignition": "Igniting",
+          "work": "Running",
+          "work_modulating": "Running (modulating)",
+          "brazier_cleaning": "Brazier cleaning",
+          "final_cleaning": "Final cleaning",
+          "standby": "Standby",
+          "alarm": "Alarm",
+          "alarm_memory": "Alarm memory",
+          "unknown": "Unknown"
+        }
+      },
+      "alarm": {
+        "name": "Alarm",
+        "state": {
+          "none": "None",
+          "fumes_probe_failure": "Flue gas probe failure",
+          "fumes_overtemperature": "Flue gas overtemperature",
+          "extractor_malfunction": "Extractor fan malfunction",
+          "ignition_failure": "Ignition failure",
+          "no_pellet": "Out of pellets",
+          "no_pressure": "No pressure",
+          "thermal_safety": "Thermal safety tripped",
+          "pellet_compartment_open": "Pellet compartment open"
+        }
+      },
+      "measured_temperature": {
+        "name": "Measured temperature"
+      },
+      "target_temperature": {
+        "name": "Target temperature"
+      },
+      "target_power": {
+        "name": "Power level"
+      },
+      "auto_mode": {
+        "name": "Module auto start/stop",
+        "state": {
+          "disabled": "Disabled",
+          "temperature": "Temperature",
+          "chrono": "Schedule",
+          "threshold_on_timeslot": "Threshold temperature on time slot"
+        }
+      },
+      "wifi_signal": {
+        "name": "Wi-Fi signal level"
+      },
+      "rssi": {
+        "name": "Wi-Fi RSSI"
+      },
+      "ssid": {
+        "name": "Wi-Fi network"
+      },
+      "ip_address": {
+        "name": "IP address"
+      },
+      "alarm_code": {
+        "name": "Alarm bitmask"
+      },
+      "status_code": {
+        "name": "Status code"
+      }
+    },
+    "binary_sensor": {
+      "alarm": {
+        "name": "Alarm"
+      },
+      "running": {
+        "name": "Running"
+      },
+      "firmware_update": {
+        "name": "Module firmware update"
+      }
+    },
+    "number": {
+      "target_power": {
+        "name": "Power level"
+      }
+    }
+  },
+  "title": "WiNET pellet stove"
+}

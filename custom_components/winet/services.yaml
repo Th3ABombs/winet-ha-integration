@@ -1,0 +1,33 @@
+set_register:
+  fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: winet
+    register:
+      required: true
+      example: 51
+      selector:
+        number:
+          min: 0
+          max: 511
+          mode: box
+    value:
+      required: true
+      example: 3
+      selector:
+        number:
+          min: 0
+          max: 65535
+          mode: box
+    memory:
+      required: false
+      default: "1"
+      selector:
+        select:
+          options:
+            - label: "Volatile (RAM)"
+              value: "0"
+            - label: "Persistent (EEPROM)"
+              value: "1"

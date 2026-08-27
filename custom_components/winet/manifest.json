@@ -1,0 +1,14 @@
+{
+  "domain": "winet",
+  "name": "WiNET pellet stove",
+  "codeowners": [
+    "@Th3ABombs"
+  ],
+  "config_flow": true,
+  "documentation": "https://github.com/Th3ABombs/winet-ha-integration/blob/main/README.md",
+  "integration_type": "device",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/Th3ABombs/winet-ha-integration/issues",
+  "requirements": [],
+  "version": "0.1.0"
+}

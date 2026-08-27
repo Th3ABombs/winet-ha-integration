@@ -1,0 +1,31 @@
+[tool.ruff]
+target-version = "py313"
+line-length = 88
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "RET", "C4", "ARG", "PTH", "RUF", "D", "BLE"]
+ignore = [
+  # Home Assistant's own platform signatures take an unused `hass`.
+  "ARG001",
+  # `async_get_options_flow(config_entry)` is a fixed Home Assistant signature.
+  "ARG004",
+  # `_attr_*` list/dict class attributes are the documented Home Assistant pattern.
+  "RUF012",
+  # Conflicts with D213, which Home Assistant uses.
+  "D212",
+]
+
+[tool.ruff.lint.isort]
+force-sort-within-sections = true
+known-first-party = ["custom_components"]
+combine-as-imports = true
+split-on-trailing-comma = false
+
+[tool.ruff.lint.pydocstyle]
+convention = "pep257"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["D103"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

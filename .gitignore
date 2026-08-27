@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.venv*/
+.pytest_cache/
+# Reverse-engineering scratch space: contains the module's own copyrighted assets.
+_research/
+.ruff_cache/
