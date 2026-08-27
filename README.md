@@ -93,6 +93,13 @@ stoves anyway. The full list is in [`docs/PROTOCOL.md`](docs/PROTOCOL.md).
 
 In particular there is **no analogue draught/depression reading**: the board reports a
 failed draught as alarm bit 5 ("no pressure"), which is a pressure switch, not a sensor.
+The [ESPHome `micronova` component](https://esphome.io/components/micronova/), which
+speaks the raw serial protocol to the same boards, has no such sensor either.
+
+If you do need those values, ESPHome can read arbitrary memory addresses over the same
+1200 baud link — that means tapping the board's serial connector, not extending this
+integration. `docs/PROTOCOL.md` cross-checks the two projects and confirms this
+integration's status table against ESPHome's, independently derived.
 
 Flue gas temperature *is* available — register 4, offset by 30 °C — even though the
 module's own local web page never displays it.

@@ -140,6 +140,12 @@ off the host. Give the module a static DHCP lease.
 | 64 | 1 | Stove clock: year | `raw + 2000` |
 | 300–303 | — | unknown, module-internal | `303` was `8` while running, `0` when off |
 
+Register 4's offset is not a quirk of one customization profile: **30…285 inclusive is
+exactly 256 values**, i.e. one byte. The module shifts the reading by 30 °C to gain
+headroom above 255 °C, which a plain byte cannot express. Every profile in
+`management.js` that defines a control for register 4 uses `offset=30`; the default
+profile defines none, which is why the local page never shows it.
+
 Register 4's offset explains an otherwise suspicious reading: it is `0` on a stove that is
 off, while the room sits at 27.5 °C. With the offset applied that is 30 °C — a cold probe,
 not a missing value. Observed `200` (= 230 °C) while the stove was burning.
@@ -230,3 +236,62 @@ status is `8` or `9`.
 
 The web UI polls `key=020` every **750 ms** with a single-request queue. Anything from a
 few seconds upward is comfortable; this integration defaults to 15 s.
+
+---
+
+## Cross-check against the ESPHome `micronova` component
+
+[ESPHome's `micronova` component](https://esphome.io/components/micronova/) speaks the
+raw serial protocol to the same family of boards — 1200 baud, 8N2, which is exactly what
+this module reports in `key=019` as `"uart":[1200,2]`. It is an independent
+reverse engineering effort, so it is worth comparing against.
+
+**The status table is independently confirmed.** ESPHome's `STOVE_STATES`:
+
+| Code | ESPHome | WiNET firmware | |
+|---|---|---|---|
+| 0 | Off | OFF | ✅ |
+| 1 | Start | ATTESA FIAMMA | same phase |
+| 2 | Pellets loading | ATTESA FIAMMA | same phase |
+| 3 | Ignition | ACCENSIONE | ✅ |
+| 4 | Working | LAVORO | ✅ |
+| 5 | Brazier Cleaning | PULIZIA BRACIERE | ✅ |
+| 6 | Final Cleaning | PULIZIA FINALE | ✅ |
+| 7 | Standby | STAND-BY | ✅ |
+| 8 | No pellets alarm | ALLARME | alarm |
+| 9 | No ignition alarm | MEMORIA ALLARME | alarm |
+
+Two independently derived tables agree on every phase. The naming of 1/2 and 8/9 differs
+because the two projects read different things: ESPHome names the alarm *cause*, while
+this module keeps the cause separately in register 3.
+
+**WiNET register ids are an abstraction, not raw addresses.** ESPHome addresses the board
+directly and its defaults do not line up with the ids this module publishes:
+
+| Value | ESPHome (location, address) | WiNET reg |
+|---|---|---|
+| Room temperature | `0x00`, `0x01`, divisor 2 | 0 (`tempDiv` 0.5 — same scaling) |
+| Flue gas temperature | `0x00`, `0x5A` | 4 |
+| Stove power | `0x00`, `0x34` | 13 ("real power", not served) |
+| Fan speed | `0x00`, `0x37` | 10 ("flue extractor", not served) |
+| Water temperature | `0x00`, `0x3B`, divisor 2 | 1 (not served) |
+| Water pressure | `0x00`, `0x3C`, divisor 10 | 6 (not served) |
+| Thermostat temperature | `0x20`, `0x7D` | 50 |
+
+So the `regId` accepted by `/ajax/set-register` cannot be treated as a Micronova memory
+address, and the module's `memory` field (0/1) is its own abstraction over the protocol's
+`0x00`/`0x20` locations.
+
+Note that ESPHome reads the flue gas temperature with **no offset**, while this module
+applies `+30`. Both are consistent: the module re-packs the board's value into a byte
+spanning 30–285 °C, as the exact 256-value range shows.
+
+**No draught sensor exists on either side.** ESPHome exposes water *pressure* (hydronic
+circuit) and no depression reading; this module reports a failed draught only as alarm
+bit 5. On these boards the draught is monitored by a pressure switch, not a transducer.
+
+**If you need the values this module does not serve** — air flow, water pressure,
+extractor RPM, real power — the ESPHome component can read arbitrary
+`memory_location`/`memory_address` pairs over the same serial link. That means tapping
+the board's serial connector directly, not extending this integration: the WiNET's HTTP
+API has no arbitrary-read endpoint.
